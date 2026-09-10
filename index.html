@@ -1,740 +1,541 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" class="dark">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ClinicChart — Clinical Management</title>
-
-<!-- Tailwind CSS (CDN, config extends slate/indigo tokens used throughout) -->
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    darkMode: 'class',
-    theme: {
-      extend: {
-        colors: {
-          brand: {
-            50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
-            400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
-            800: '#3730a3', 900: '#312e81'
-          }
-        },
-        fontFamily: {
-          sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif']
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediPulse | Clinical Management System</title>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
         }
-      }
-    }
-  };
-</script>
-
-<!-- SheetJS for client-side Excel/CSV parsing (bulk lab import + AI-extracted Excel uploads) -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="styles.css" />
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
 </head>
+<body class="bg-[var(--bg-primary)] text-slate-100 font-sans min-h-screen antialiased selection:bg-teal-500/30 selection:text-teal-200">
 
-<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased transition-colors duration-200">
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none"></div>
 
-<!-- =========================================================================
-     TOAST CONTAINER
-========================================================================= -->
-<div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2 w-80"></div>
+    <!-- AUTHENTICATION SCREEN (Shown when logged out) -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-grid-pattern">
+        <div class="absolute -top-40 -left-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-<!-- =========================================================================
-     LOADING OVERLAY
-========================================================================= -->
-<div id="global-loader" class="hidden fixed inset-0 z-[90] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
-  <div class="flex items-center gap-3 bg-white dark:bg-slate-800 px-5 py-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
-    <svg class="animate-spin h-5 w-5 text-brand-600" viewBox="0 0 24 24" fill="none">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-    </svg>
-    <span id="global-loader-text" class="text-sm font-medium text-slate-700 dark:text-slate-200">Working…</span>
-  </div>
-</div>
+        <div class="w-full max-w-md card-glass p-8 rounded-2xl relative z-10 border border-white/10 shadow-2xl">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="p-2.5 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 text-slate-950 shadow-lg shadow-teal-500/20">
+                    <i data-lucide="activity" class="w-6 h-6 stroke-[2.5]"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white">MediPulse</h1>
+                    <p class="text-xs text-slate-400 font-medium">Clinical Workbench v2.4</p>
+                </div>
+            </div>
 
-<!-- =========================================================================
-     AUTH VIEW (Login)
-========================================================================= -->
-<div id="auth-view" class="min-h-screen flex items-center justify-center px-4">
-  <div class="w-full max-w-sm">
-    <div class="flex items-center gap-2 justify-center mb-8">
-      <div class="h-9 w-9 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold">C</div>
-      <span class="text-xl font-bold tracking-tight">ClinicChart</span>
+            <!-- Login Form -->
+            <form id="auth-form" class="space-y-5">
+                <div id="auth-title-container">
+                    <h2 class="text-lg font-semibold text-white">Clinical Sign In</h2>
+                    <p class="text-xs text-slate-400">Access your secure provider workspace</p>
+                </div>
+
+                <div id="fullname-field" class="hidden space-y-1.5">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Full Name</label>
+                    <div class="relative">
+                        <i data-lucide="user" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                        <input type="text" id="auth-fullname" placeholder="Dr. Alex Vance" class="input-field pl-10">
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Medical ID / Email</label>
+                    <div class="relative">
+                        <i data-lucide="mail" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                        <input type="email" id="auth-email" required placeholder="provider@hospital.org" class="input-field pl-10">
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Security Key</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                        <input type="password" id="auth-password" required placeholder="••••••••••••" class="input-field pl-10">
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-auth-submit" class="btn-primary w-full py-3 flex items-center justify-center gap-2 mt-2">
+                    <span>Authenticate</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </form>
+
+            <div class="mt-6 pt-6 border-t border-slate-800 text-center">
+                <button type="button" id="btn-toggle-auth-mode" class="text-xs text-teal-400 hover:text-teal-300 font-medium transition-colors">
+                    Need a provider account? Register here
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6">
-      <h1 id="auth-title" class="text-lg font-semibold mb-1">Sign in</h1>
-      <p class="text-sm text-slate-500 dark:text-slate-400 mb-5">Access your clinical workspace.</p>
-
-      <form id="auth-form" class="space-y-4">
-        <div>
-          <label class="form-label" for="auth-email">Email</label>
-          <input id="auth-email" type="email" required autocomplete="username" class="form-input" placeholder="doctor@clinic.com" />
-        </div>
-        <div>
-          <label class="form-label" for="auth-password">Password</label>
-          <input id="auth-password" type="password" required autocomplete="current-password" class="form-input" placeholder="••••••••" minlength="6" />
-        </div>
-        <p id="auth-error" class="hidden text-sm text-red-600 dark:text-red-400"></p>
-        <button type="submit" id="auth-submit-btn" class="btn-primary w-full justify-center">Sign in</button>
-      </form>
-
-      <button id="auth-toggle-mode" class="mt-4 text-sm text-brand-600 dark:text-brand-400 hover:underline w-full text-center">
-        Need an account? Sign up
-      </button>
-    </div>
-    <p class="text-xs text-slate-400 text-center mt-6">Admin accounts can create standard doctor accounts from Settings → Team, after first sign-in.</p>
-  </div>
-</div>
-
-<!-- =========================================================================
-     APP SHELL (shown once authenticated)
-========================================================================= -->
-<div id="app-shell" class="hidden min-h-screen flex">
-
-  <!-- Sidebar -->
-  <aside class="w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col">
-    <div class="h-16 flex items-center gap-2 px-5 border-b border-slate-200 dark:border-slate-800">
-      <div class="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-sm">C</div>
-      <span class="font-bold tracking-tight">ClinicChart</span>
-    </div>
-
-    <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-      <button data-nav="patients" class="nav-link nav-link-active">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-        Patients
-      </button>
-      <button data-nav="labs" class="nav-link">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3h6M10 3v6.5L4.5 19a1.5 1.5 0 001.3 2.2h12.4a1.5 1.5 0 001.3-2.2L14 9.5V3"/></svg>
-        My Lab Library
-      </button>
-      <button data-nav="admin" id="nav-admin" class="nav-link hidden">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Admin
-      </button>
-      <button data-nav="settings" class="nav-link">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-        Settings
-      </button>
-    </nav>
-
-    <div class="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
-      <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1" id="theme-switcher">
-        <button data-theme-choice="light" class="theme-btn" title="Light mode">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-        </button>
-        <button data-theme-choice="dark" class="theme-btn" title="Dark mode">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>
-        </button>
-        <button data-theme-choice="contrast" class="theme-btn" title="High-contrast mode">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 000 20z" fill="currentColor"/></svg>
-        </button>
-      </div>
-      <div class="flex items-center justify-between px-1">
-        <div class="min-w-0">
-          <p id="sidebar-user-name" class="text-sm font-medium truncate">—</p>
-          <p id="sidebar-user-role" class="text-xs text-slate-400 truncate">Doctor</p>
-        </div>
-        <button id="logout-btn" title="Sign out" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
-        </button>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Main content -->
-  <main class="flex-1 min-w-0 flex flex-col">
-    <header class="h-16 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur flex items-center px-6 gap-4">
-      <h1 id="view-title" class="text-lg font-semibold">Patients</h1>
-      <div class="flex-1"></div>
-      <div id="header-actions"></div>
-    </header>
-
-    <div class="flex-1 overflow-y-auto p-6">
-
-      <!-- ---------------- PATIENTS LIST VIEW ---------------- -->
-      <section id="view-patients" class="view-section">
-        <div class="flex flex-wrap items-center gap-3 mb-5">
-          <div class="relative flex-1 min-w-[240px] max-w-sm">
-            <svg class="absolute left-3 top-2.5 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            <input id="patient-search" type="text" placeholder="Search by name, ID, or last visit date…" class="form-input pl-9" />
-          </div>
-          <select id="patient-status-filter" class="form-input w-40">
-            <option value="Active">Active</option>
-            <option value="Archived">Archived</option>
-            <option value="All">All statuses</option>
-          </select>
-          <div class="flex-1"></div>
-          <button id="add-patient-btn" class="btn-primary">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-            New patient
-          </button>
-        </div>
-
-        <div class="card overflow-hidden">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Patient ID</th>
-                <th>Age / Sex</th>
-                <th>Phone</th>
-                <th>Last visit</th>
-                <th>Status</th>
-                <th class="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="patients-table-body">
-              <!-- rows injected by app.js -->
-            </tbody>
-          </table>
-          <div id="patients-empty" class="hidden py-16 text-center text-slate-400">
-            <p class="font-medium">No patients yet</p>
-            <p class="text-sm">Click "New patient" to add your first record.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- ---------------- PATIENT DETAIL / CHART VIEW ---------------- -->
-      <section id="view-patient-detail" class="view-section hidden">
-        <button id="back-to-patients" class="flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-4">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          Back to patients
-        </button>
-
-        <div class="card p-5 mb-5">
-          <div class="flex flex-wrap items-start justify-between gap-4">
+    <!-- MAIN CLINICAL WORKSPACE (Shown when authenticated) -->
+    <div id="app-workspace" class="hidden min-h-screen flex flex-col md:flex-row">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="w-full md:w-64 card-glass border-r border-slate-800/80 flex flex-col justify-between shrink-0 z-20">
             <div>
-              <h2 id="pd-name" class="text-xl font-bold"></h2>
-              <p id="pd-subline" class="text-sm text-slate-500 dark:text-slate-400 mt-0.5"></p>
+                <!-- Brand Header -->
+                <div class="p-5 border-b border-slate-800/80 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 text-slate-950 shadow-md">
+                            <i data-lucide="activity" class="w-5 h-5 stroke-[2.5]"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-base font-bold text-white tracking-tight">MediPulse</h1>
+                            <span class="text-[10px] font-semibold uppercase tracking-wider text-teal-400 bg-teal-950/60 px-1.5 py-0.5 rounded border border-teal-800/50">EHR Core</span>
+                        </div>
+                    </div>
+                    <button id="btn-mobile-menu" class="md:hidden p-2 text-slate-400 hover:text-white">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Nav Items -->
+                <nav id="sidebar-nav" class="p-3 space-y-1">
+                    <button data-target="view-dashboard" class="nav-item active">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Dashboard</span>
+                    </button>
+                    <button data-target="view-patients" class="nav-item">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Patient Directory</span>
+                    </button>
+                    <button data-target="view-encounters" class="nav-item">
+                        <i data-lucide="stethoscope" class="w-4 h-4"></i>
+                        <span>Clinical Encounters</span>
+                    </button>
+                    <button data-target="view-labs" class="nav-item">
+                        <i data-lucide="flask-conical" class="w-4 h-4"></i>
+                        <span>Lab Measurements</span>
+                    </button>
+                </nav>
             </div>
-            <div class="flex items-center gap-2">
-              <span id="pd-status-badge" class="badge"></span>
-              <button id="edit-patient-btn" class="btn-secondary">Edit patient</button>
-              <button id="new-encounter-btn" class="btn-primary">New encounter</button>
+
+            <!-- User Profile Bottom Widget -->
+            <div class="p-4 border-t border-slate-800/80 bg-slate-950/40">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-teal-400 shrink-0" id="user-avatar">
+                            DR
+                        </div>
+                        <div class="truncate">
+                            <p class="text-xs font-semibold text-slate-200 truncate" id="user-display-name">Loading...</p>
+                            <p class="text-[10px] text-slate-400 truncate capitalize" id="user-role-badge">Provider</p>
+                        </div>
+                    </div>
+                    <button id="btn-logout" title="Sign Out" class="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </div>
-          </div>
-        </div>
+        </aside>
 
-        <div class="flex gap-1 border-b border-slate-200 dark:border-slate-800 mb-5" id="patient-tabs">
-          <button data-tab="timeline" class="tab-btn tab-btn-active">Timeline</button>
-          <button data-tab="history" class="tab-btn">History &amp; Meds</button>
-          <button data-tab="labs" class="tab-btn">Labs</button>
-        </div>
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            
+            <!-- Sticky Header Bar -->
+            <header class="sticky top-0 z-10 card-glass border-b border-slate-800/80 px-6 py-4 flex items-center justify-between backdrop-blur-md">
+                <div>
+                    <h2 id="page-title" class="text-lg font-bold text-white tracking-tight">Dashboard Overview</h2>
+                    <p id="page-subtitle" class="text-xs text-slate-400">Real-time clinical metrics & summary</p>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <div class="relative hidden sm:block">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                        <input type="text" id="global-search" placeholder="Search MRN or Patient..." class="input-field pl-9 py-1.5 text-xs w-64 bg-slate-900/60">
+                    </div>
+                    <button id="btn-quick-action" class="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        <span id="quick-action-label">New Patient</span>
+                    </button>
+                </div>
+            </header>
 
-        <!-- Timeline tab -->
-        <div id="tab-timeline" class="tab-panel">
-          <div id="encounters-list" class="space-y-4"></div>
-          <div id="encounters-empty" class="hidden card p-10 text-center text-slate-400">No encounters recorded yet.</div>
-        </div>
+            <!-- VIEW CONTAINER -->
+            <div class="p-6 space-y-6 max-w-7xl mx-auto w-full">
 
-        <!-- History & Meds tab -->
-        <div id="tab-history" class="tab-panel hidden space-y-6">
-          <div class="card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="section-heading">Past Medical History</h3>
-              <button data-add="pmh" class="btn-ghost-sm">+ Add condition</button>
+                <!-- VIEW 1: DASHBOARD -->
+                <section id="view-dashboard" class="space-y-6">
+                    <!-- Metric Cards Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="metric-card">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="metric-label">Total Patients</p>
+                                    <h3 class="metric-value" id="stat-total-patients">--</h3>
+                                </div>
+                                <div class="metric-icon bg-teal-500/10 text-teal-400">
+                                    <i data-lucide="users" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <span class="text-[11px] text-teal-400/80 flex items-center gap-1 mt-2">
+                                <i data-lucide="trending-up" class="w-3 h-3"></i> Active registry records
+                            </span>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="metric-label">Encounters Today</p>
+                                    <h3 class="metric-value" id="stat-today-encounters">--</h3>
+                                </div>
+                                <div class="metric-icon bg-indigo-500/10 text-indigo-400">
+                                    <i data-lucide="stethoscope" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <span class="text-[11px] text-slate-400 flex items-center gap-1 mt-2">
+                                Scheduled & completed
+                            </span>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="metric-label">Abnormal Labs Flagged</p>
+                                    <h3 class="metric-value text-amber-400" id="stat-abnormal-labs">--</h3>
+                                </div>
+                                <div class="metric-icon bg-amber-500/10 text-amber-400">
+                                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <span class="text-[11px] text-amber-400/80 flex items-center gap-1 mt-2">
+                                Requires clinical review
+                            </span>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="metric-label">Active Providers</p>
+                                    <h3 class="metric-value text-emerald-400" id="stat-active-providers">--</h3>
+                                </div>
+                                <div class="metric-icon bg-emerald-500/10 text-emerald-400">
+                                    <i data-lucide="user-check" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <span class="text-[11px] text-emerald-400/80 flex items-center gap-1 mt-2">
+                                Authenticated staff
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Lists Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Recent Encounters Card -->
+                        <div class="card-glass p-5 rounded-xl border border-slate-800">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                    <i data-lucide="clock" class="w-4 h-4 text-teal-400"></i> Recent Encounters
+                                </h3>
+                                <button class="text-xs text-teal-400 hover:underline nav-link" data-target="view-encounters">View All</button>
+                            </div>
+                            <div id="dash-recent-encounters" class="space-y-3">
+                                <!-- Skeleton Loaders -->
+                                <div class="skeleton-loader h-12 w-full rounded-lg"></div>
+                                <div class="skeleton-loader h-12 w-full rounded-lg"></div>
+                                <div class="skeleton-loader h-12 w-full rounded-lg"></div>
+                            </div>
+                        </div>
+
+                        <!-- Critical Lab Results Card -->
+                        <div class="card-glass p-5 rounded-xl border border-slate-800">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                    <i data-lucide="flask-conical" class="w-4 h-4 text-amber-400"></i> Abnormal Lab Flags
+                                </h3>
+                                <button class="text-xs text-teal-400 hover:underline nav-link" data-target="view-labs">View All Labs</button>
+                            </div>
+                            <div id="dash-abnormal-labs" class="space-y-3">
+                                <div class="skeleton-loader h-12 w-full rounded-lg"></div>
+                                <div class="skeleton-loader h-12 w-full rounded-lg"></div>
+                                <div class="skeleton-loader h-12 w-full rounded-lg"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 2: PATIENT DIRECTORY -->
+                <section id="view-patients" class="hidden space-y-4">
+                    <div class="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
+                        <div class="relative w-full sm:w-72">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                            <input type="text" id="patient-search-input" placeholder="Filter by Name or MRN..." class="input-field pl-9">
+                        </div>
+                        <button id="btn-open-patient-modal" class="btn-primary py-2 px-4 text-xs flex items-center gap-2">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i> Add New Patient
+                        </button>
+                    </div>
+
+                    <div class="card-glass rounded-xl border border-slate-800 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-900/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                                    <tr>
+                                        <th class="p-4">MRN</th>
+                                        <th class="p-4">Patient Name</th>
+                                        <th class="p-4">DOB / Age</th>
+                                        <th class="p-4">Gender</th>
+                                        <th class="p-4">Contact</th>
+                                        <th class="p-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="patients-table-body" class="divide-y divide-slate-800/60">
+                                    <!-- Rendered dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="patients-empty-state" class="hidden p-8 text-center text-slate-400 space-y-3">
+                            <i data-lucide="folder-search" class="w-10 h-10 mx-auto text-slate-600"></i>
+                            <p class="text-sm font-medium">No patient records found matching query.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 3: CLINICAL ENCOUNTERS -->
+                <section id="view-encounters" class="hidden space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-300">Encounter Records</h3>
+                        <button id="btn-open-encounter-modal" class="btn-primary py-2 px-4 text-xs flex items-center gap-2">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i> New Encounter
+                        </button>
+                    </div>
+
+                    <div id="encounters-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Loaded dynamically -->
+                    </div>
+                    <div id="encounters-empty-state" class="hidden card-glass p-8 text-center text-slate-400 rounded-xl border border-slate-800 space-y-3">
+                        <i data-lucide="file-x" class="w-10 h-10 mx-auto text-slate-600"></i>
+                        <p class="text-sm font-medium">No clinical encounters recorded yet.</p>
+                    </div>
+                </section>
+
+                <!-- VIEW 4: LAB MEASUREMENTS -->
+                <section id="view-labs" class="hidden space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-300">Laboratory Test Diagnostic Logs</h3>
+                        <button id="btn-open-lab-modal" class="btn-primary py-2 px-4 text-xs flex items-center gap-2">
+                            <i data-lucide="flask-conical" class="w-4 h-4"></i> Log Lab Result
+                        </button>
+                    </div>
+
+                    <div class="card-glass rounded-xl border border-slate-800 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-900/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                                    <tr>
+                                        <th class="p-4">Date</th>
+                                        <th class="p-4">Patient</th>
+                                        <th class="p-4">Test Name</th>
+                                        <th class="p-4">Result Value</th>
+                                        <th class="p-4">Ref. Range</th>
+                                        <th class="p-4">Flag</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="labs-table-body" class="divide-y divide-slate-800/60">
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="labs-empty-state" class="hidden p-8 text-center text-slate-400 space-y-3">
+                            <i data-lucide="flask-round" class="w-10 h-10 mx-auto text-slate-600"></i>
+                            <p class="text-sm font-medium">No laboratory results registered.</p>
+                        </div>
+                    </div>
+                </section>
+
             </div>
-            <div id="pmh-list" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
-            <p id="pmh-empty" class="hidden text-sm text-slate-400 py-2">No chronic conditions recorded.</p>
-          </div>
+        </main>
+    </div>
 
-          <div class="card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="section-heading">Past Surgical History</h3>
-              <button data-add="psh" class="btn-ghost-sm">+ Add surgery</button>
+    <!-- MODAL 1: ADD PATIENT -->
+    <div id="modal-patient" class="modal-backdrop hidden">
+        <div class="modal-content max-w-lg w-full card-glass p-6 rounded-2xl border border-white/10 shadow-2xl space-y-5">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="user-plus" class="w-5 h-5 text-teal-400"></i> Add Patient Record
+                </h3>
+                <button class="btn-close-modal text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <div id="psh-list" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
-            <p id="psh-empty" class="hidden text-sm text-slate-400 py-2">No prior surgeries recorded.</p>
-          </div>
+            <form id="form-patient" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="input-label">First Name</label>
+                        <input type="text" id="patient-firstname" required class="input-field" placeholder="John">
+                    </div>
+                    <div>
+                        <label class="input-label">Last Name</label>
+                        <input type="text" id="patient-lastname" required class="input-field" placeholder="Doe">
+                    </div>
+                </div>
 
-          <div class="card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="section-heading">Medications</h3>
-              <button data-add="medication" class="btn-ghost-sm">+ Add medication</button>
-            </div>
-            <div id="medications-list" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
-            <p id="medications-empty" class="hidden text-sm text-slate-400 py-2">No medications recorded.</p>
-          </div>
-        </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="input-label">Medical Record Number (MRN)</label>
+                        <input type="text" id="patient-mrn" required class="input-field" placeholder="MRN-10029">
+                    </div>
+                    <div>
+                        <label class="input-label">Date of Birth</label>
+                        <input type="date" id="patient-dob" required class="input-field">
+                    </div>
+                </div>
 
-        <!-- Labs tab -->
-        <div id="tab-labs" class="tab-panel hidden">
-          <div class="flex flex-wrap items-center gap-2 mb-4">
-            <button id="add-lab-result-btn" class="btn-primary">+ Add lab result</button>
-            <button id="ai-extract-btn" class="btn-secondary">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l1.9 5.8L20 10l-6.1 2.2L12 18l-1.9-5.8L4 10l6.1-2.2z"/></svg>
-              AI-extract from file
-            </button>
-          </div>
-          <div class="card overflow-x-auto">
-            <table class="data-table" id="labs-trend-table">
-              <thead><tr id="labs-trend-head"><th class="sticky left-0 bg-inherit">Parameter</th></tr></thead>
-              <tbody id="labs-trend-body"></tbody>
-            </table>
-            <div id="labs-empty" class="hidden py-16 text-center text-slate-400">No lab results recorded yet.</div>
-          </div>
-        </div>
-      </section>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="input-label">Gender</label>
+                        <select id="patient-gender" class="input-field">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="input-label">Contact Phone</label>
+                        <input type="tel" id="patient-phone" class="input-field" placeholder="+1 (555) 000-0000">
+                    </div>
+                </div>
 
-      <!-- ---------------- MY LAB LIBRARY VIEW ---------------- -->
-      <section id="view-labs" class="view-section hidden">
-        <div class="grid md:grid-cols-2 gap-6">
-          <div class="card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="section-heading">My Custom Labs</h3>
-              <button id="add-custom-lab-btn" class="btn-ghost-sm">+ Add custom lab</button>
-            </div>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-3">Private to your account. Custom labs are never overwritten by admin imports.</p>
-            <div id="custom-labs-list" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
-            <p id="custom-labs-empty" class="hidden text-sm text-slate-400 py-2">No custom labs defined yet.</p>
-          </div>
-          <div class="card p-5">
-            <h3 class="section-heading mb-3">Global Lab Library</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-3">Standard labs maintained by your admin, readable by every doctor.</p>
-            <div id="global-labs-list" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
-            <p id="global-labs-empty" class="hidden text-sm text-slate-400 py-2">No global labs defined yet.</p>
-          </div>
-        </div>
-      </section>
+                <div>
+                    <label class="input-label">Medical History Summary</label>
+                    <textarea id="patient-history" rows="3" class="input-field" placeholder="Chronic conditions, allergies, surgical history..."></textarea>
+                </div>
 
-      <!-- ---------------- ADMIN VIEW ---------------- -->
-      <section id="view-admin" class="view-section hidden">
-        <div class="grid lg:grid-cols-2 gap-6">
-          <div class="card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="section-heading">Doctor Accounts</h3>
-              <button id="add-doctor-btn" class="btn-ghost-sm">+ New doctor account</button>
-            </div>
-            <div id="doctors-list" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
-          </div>
-
-          <div class="card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="section-heading">Global Lab Library</h3>
-              <div class="flex gap-2">
-                <button id="admin-add-global-lab-btn" class="btn-ghost-sm">+ Add lab</button>
-                <label class="btn-ghost-sm cursor-pointer">
-                  Bulk import
-                  <input id="bulk-import-input" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
-                </label>
-              </div>
-            </div>
-            <p class="text-xs text-slate-400 mb-3">Excel/CSV columns: A=Name, B=Unit, C=Lower limit, D=Upper limit.</p>
-            <div id="admin-global-labs-list" class="divide-y divide-slate-100 dark:divide-slate-800 max-h-96 overflow-y-auto"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ---------------- SETTINGS VIEW ---------------- -->
-      <section id="view-settings" class="view-section hidden">
-        <div class="max-w-xl space-y-6">
-          <div class="card p-5">
-            <h3 class="section-heading mb-3">Profile</h3>
-            <form id="profile-form" class="space-y-4">
-              <div>
-                <label class="form-label">Full name</label>
-                <input id="settings-full-name" type="text" class="form-input" />
-              </div>
-              <div>
-                <label class="form-label">Email</label>
-                <input id="settings-email" type="text" class="form-input" disabled />
-              </div>
-              <button type="submit" class="btn-primary">Save profile</button>
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" class="btn-close-modal btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Patient</button>
+                </div>
             </form>
-          </div>
+        </div>
+    </div>
 
-          <div class="card p-5">
-            <h3 class="section-heading mb-1">AI Lab Extraction</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-3">Your personal Google Gemini API key, used only from your browser to extract lab values from uploaded files.</p>
-            <form id="gemini-form" class="space-y-3">
-              <div>
-                <label class="form-label">Gemini API key</label>
-                <input id="settings-gemini-key" type="password" class="form-input" placeholder="AIza…" autocomplete="off" />
-              </div>
-              <button type="submit" class="btn-primary">Save API key</button>
-            </form>
-          </div>
-
-          <div class="card p-5">
-            <h3 class="section-heading mb-3">Appearance</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-3">Toggle theme mode for variable clinical lighting conditions.</p>
-            <div class="flex gap-2">
-              <button data-theme-choice="light" class="theme-btn-lg">Light</button>
-              <button data-theme-choice="dark" class="theme-btn-lg">Dark</button>
-              <button data-theme-choice="contrast" class="theme-btn-lg">High-contrast</button>
+    <!-- MODAL 2: ADD ENCOUNTER -->
+    <div id="modal-encounter" class="modal-backdrop hidden">
+        <div class="modal-content max-w-xl w-full card-glass p-6 rounded-2xl border border-white/10 shadow-2xl space-y-5">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="stethoscope" class="w-5 h-5 text-indigo-400"></i> Record Clinical Encounter
+                </h3>
+                <button class="btn-close-modal text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-          </div>
+            <form id="form-encounter" class="space-y-4">
+                <div>
+                    <label class="input-label">Select Patient</label>
+                    <select id="encounter-patient-id" required class="input-field">
+                        <!-- Options populated via JS -->
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="input-label">Encounter Status</label>
+                        <select id="encounter-status" class="input-field">
+                            <option value="scheduled">Scheduled</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="input-label">Date & Time</label>
+                        <input type="datetime-local" id="encounter-date" required class="input-field">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="input-label">Chief Complaint</label>
+                    <input type="text" id="encounter-complaint" required class="input-field" placeholder="e.g. Acute chest pain, routine follow-up">
+                </div>
+
+                <div>
+                    <label class="input-label">Clinical Notes / Assessment & Plan</label>
+                    <textarea id="encounter-notes" rows="4" class="input-field" placeholder="Document physical examination, diagnosis, treatment plan..."></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" class="btn-close-modal btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Encounter</button>
+                </div>
+            </form>
         </div>
-      </section>
-
     </div>
-  </main>
-</div>
 
-<!-- =========================================================================
-     MODALS (all hidden by default; toggled via .modal-open on backdrop)
-========================================================================= -->
+    <!-- MODAL 3: ADD LAB RESULT -->
+    <div id="modal-lab" class="modal-backdrop hidden">
+        <div class="modal-content max-w-lg w-full card-glass p-6 rounded-2xl border border-white/10 shadow-2xl space-y-5">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="flask-conical" class="w-5 h-5 text-amber-400"></i> Register Laboratory Test
+                </h3>
+                <button class="btn-close-modal text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="form-lab" class="space-y-4">
+                <div>
+                    <label class="input-label">Associated Clinical Encounter</label>
+                    <select id="lab-encounter-id" required class="input-field">
+                        <!-- Options populated via JS -->
+                    </select>
+                </div>
 
-<!-- Generic modal backdrop template is reused for every modal below -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="input-label">Test Name</label>
+                        <input type="text" id="lab-test-name" required class="input-field" placeholder="e.g. Serum Ferritin, HbA1c">
+                    </div>
+                    <div>
+                        <label class="input-label">Measured Value</label>
+                        <input type="number" step="any" id="lab-value" required class="input-field" placeholder="145.2">
+                    </div>
+                </div>
 
-<!-- Patient add/edit modal -->
-<div id="modal-patient" class="modal-backdrop hidden">
-  <div class="modal-panel max-w-2xl">
-    <div class="modal-header">
-      <h3 id="modal-patient-title" class="modal-title">New patient</h3>
-      <button data-close-modal class="modal-close">&times;</button>
-    </div>
-    <form id="patient-form" class="modal-body grid sm:grid-cols-2 gap-4">
-      <input type="hidden" id="patient-id" />
-      <div class="sm:col-span-2">
-        <label class="form-label">Full name *</label>
-        <input id="patient-full-name" required class="form-input" />
-      </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="input-label">Measurement Unit</label>
+                        <input type="text" id="lab-unit" required class="input-field" placeholder="ng/mL, mg/dL">
+                    </div>
+                    <div>
+                        <label class="input-label">Reference Range</label>
+                        <input type="text" id="lab-ref-range" class="input-field" placeholder="30 - 300 ng/mL">
+                    </div>
+                </div>
 
-      <div>
-        <label class="form-label">Patient ID</label>
-        <div class="flex items-center gap-2">
-          <input id="patient-code" class="form-input" />
+                <div class="flex items-center gap-2 pt-2">
+                    <input type="checkbox" id="lab-abnormal" class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-teal-500 focus:ring-teal-500">
+                    <label for="lab-abnormal" class="text-xs font-semibold text-amber-400">Mark as Clinical Abnormal Flag</label>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" class="btn-close-modal btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Record Result</button>
+                </div>
+            </form>
         </div>
-        <label class="checkbox-label mt-1">
-          <input type="checkbox" id="patient-code-unavailable" /> Unavailable
-        </label>
-      </div>
-
-      <div>
-        <label class="form-label">Phone number</label>
-        <input id="patient-phone" class="form-input" />
-        <label class="checkbox-label mt-1">
-          <input type="checkbox" id="patient-phone-unavailable" /> Unavailable
-        </label>
-      </div>
-
-      <div>
-        <label class="form-label">Date of birth</label>
-        <input id="patient-dob" type="date" class="form-input" />
-      </div>
-      <div>
-        <label class="form-label">Sex</label>
-        <select id="patient-sex" class="form-input">
-          <option>Unspecified</option><option>Male</option><option>Female</option><option>Other</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="form-label">Email</label>
-        <input id="patient-email" type="email" class="form-input" />
-      </div>
-      <div>
-        <label class="form-label">Status</label>
-        <select id="patient-status" class="form-input">
-          <option>Active</option><option>Archived</option>
-        </select>
-      </div>
-
-      <div class="sm:col-span-2">
-        <label class="form-label">Address</label>
-        <input id="patient-address" class="form-input" />
-      </div>
-      <div class="sm:col-span-2">
-        <label class="form-label">General notes</label>
-        <textarea id="patient-notes" rows="3" class="form-input"></textarea>
-      </div>
-    </form>
-    <div class="modal-footer">
-      <button data-close-modal class="btn-secondary">Cancel</button>
-      <button id="patient-save-btn" class="btn-primary">Save patient</button>
     </div>
-  </div>
-</div>
 
-<!-- PMH modal -->
-<div id="modal-pmh" class="modal-backdrop hidden">
-  <div class="modal-panel max-w-md">
-    <div class="modal-header"><h3 class="modal-title">Chronic condition</h3><button data-close-modal class="modal-close">&times;</button></div>
-    <form id="pmh-form" class="modal-body space-y-4">
-      <input type="hidden" id="pmh-id" />
-      <div>
-        <label class="form-label">Condition *</label>
-        <input id="pmh-condition" required class="form-input" />
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="form-label">Duration</label>
-          <input id="pmh-duration-value" type="number" min="0" step="any" class="form-input" />
-        </div>
-        <div>
-          <label class="form-label">Unit</label>
-          <select id="pmh-duration-unit" class="form-input"><option value="years">Years</option><option value="months">Months</option></select>
-        </div>
-      </div>
-      <div>
-        <label class="form-label">Notes</label>
-        <textarea id="pmh-notes" rows="2" class="form-input"></textarea>
-      </div>
-    </form>
-    <div class="modal-footer">
-      <button data-delete-target="pmh" class="btn-danger hidden mr-auto">Delete</button>
-      <button data-close-modal class="btn-secondary">Cancel</button>
-      <button id="pmh-save-btn" class="btn-primary">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- PSH modal -->
-<div id="modal-psh" class="modal-backdrop hidden">
-  <div class="modal-panel max-w-md">
-    <div class="modal-header"><h3 class="modal-title">Surgical history</h3><button data-close-modal class="modal-close">&times;</button></div>
-    <form id="psh-form" class="modal-body space-y-4">
-      <input type="hidden" id="psh-id" />
-      <div>
-        <label class="form-label">Procedure *</label>
-        <input id="psh-procedure-name" required class="form-input" />
-      </div>
-      <div>
-        <label class="form-label">Facility location (optional)</label>
-        <input id="psh-facility" class="form-input" />
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="form-label">Date (if known)</label>
-          <input id="psh-date" type="date" class="form-input" />
-        </div>
-        <div>
-          <label class="form-label">Year only (if date unknown)</label>
-          <input id="psh-year" type="number" min="1900" max="2100" class="form-input" />
-        </div>
-      </div>
-      <div>
-        <label class="form-label">Notes</label>
-        <textarea id="psh-notes" rows="2" class="form-input"></textarea>
-      </div>
-    </form>
-    <div class="modal-footer">
-      <button data-delete-target="psh" class="btn-danger hidden mr-auto">Delete</button>
-      <button data-close-modal class="btn-secondary">Cancel</button>
-      <button id="psh-save-btn" class="btn-primary">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- Medication modal -->
-<div id="modal-medication" class="modal-backdrop hidden">
-  <div class="modal-panel max-w-lg">
-    <div class="modal-header"><h3 class="modal-title">Medication</h3><button data-close-modal class="modal-close">&times;</button></div>
-    <form id="medication-form" class="modal-body grid sm:grid-cols-2 gap-4">
-      <input type="hidden" id="medication-id" />
-      <div class="sm:col-span-2">
-        <label class="form-label">Drug name *</label>
-        <input id="medication-drug-name" required class="form-input" />
-      </div>
-      <div>
-        <label class="form-label">Dosage</label>
-        <input id="medication-dosage" class="form-input" placeholder="e.g. 500 mg" />
-      </div>
-      <div>
-        <label class="form-label">Route</label>
-        <input id="medication-route" class="form-input" placeholder="e.g. Oral" />
-      </div>
-      <div class="sm:col-span-2">
-        <label class="form-label">Frequency</label>
-        <input id="medication-frequency" class="form-input" placeholder="e.g. Twice daily" />
-      </div>
-      <div>
-        <label class="form-label">Start date</label>
-        <input id="medication-start-date" type="date" class="form-input" />
-        <label class="checkbox-label mt-1">
-          <input type="checkbox" id="medication-start-unspecified" /> Unspecified
-        </label>
-      </div>
-      <div>
-        <label class="form-label">Status</label>
-        <select id="medication-status" class="form-input"><option>Active</option><option>Stopped</option></select>
-      </div>
-      <div id="medication-stop-date-wrap" class="sm:col-span-2 hidden">
-        <label class="form-label">Stop date</label>
-        <input id="medication-stop-date" type="date" class="form-input" />
-      </div>
-      <div class="sm:col-span-2">
-        <label class="form-label">Notes</label>
-        <textarea id="medication-notes" rows="2" class="form-input"></textarea>
-      </div>
-    </form>
-    <div class="modal-footer">
-      <button data-delete-target="medication" class="btn-danger hidden mr-auto">Delete</button>
-      <button data-close-modal class="btn-secondary">Cancel</button>
-      <button id="medication-save-btn" class="btn-primary">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- Encounter (SOAP note) modal -->
-<div id="modal-encounter" class="modal-backdrop hidden">
-  <div class="modal-panel max-w-3xl">
-    <div class="modal-header"><h3 class="modal-title">Clinical encounter</h3><button data-close-modal class="modal-close">&times;</button></div>
-    <form id="encounter-form" class="modal-body space-y-4">
-      <input type="hidden" id="encounter-id" />
-      <div>
-        <label class="form-label">Encounter date</label>
-        <input id="encounter-date" type="datetime-local" class="form-input max-w-xs" />
-      </div>
-      <div>
-        <label class="form-label">Chief Complaint (CC)</label>
-        <textarea id="encounter-cc" rows="2" class="form-input"></textarea>
-      </div>
-      <div>
-        <label class="form-label">History of Present Illness (HPI)</label>
-        <textarea id="encounter-hpi" rows="3" class="form-input"></textarea>
-      </div>
-      <div>
-        <label class="form-label">Physical Examination (PE)</label>
-        <textarea id="encounter-pe" rows="3" class="form-input"></textarea>
-      </div>
-      <div>
-        <label class="form-label">Assessment &amp; Plan (A&amp;P)</label>
-        <textarea id="encounter-ap" rows="3" class="form-input"></textarea>
-      </div>
-
-      <div class="border-t border-slate-200 dark:border-slate-800 pt-4">
-        <div class="flex items-center justify-between mb-2">
-          <h4 class="text-sm font-semibold">Orders (meds / diagnostics / follow-up)</h4>
-          <button type="button" id="add-order-row-btn" class="btn-ghost-sm">+ Add order</button>
-        </div>
-        <div id="encounter-orders-rows" class="space-y-2"></div>
-      </div>
-    </form>
-    <div class="modal-footer">
-      <button data-delete-target="encounter" class="btn-danger hidden mr-auto">Delete encounter</button>
-      <button data-close-modal class="btn-secondary">Cancel</button>
-      <button id="encounter-save-btn" class="btn-primary">Save encounter</button>
-    </div>
-  </div>
-</div>
-
-<!-- Custom / Global lab definition modal (shared) -->
-<div id="modal-lab-def" class="modal-backdrop hidden">
-  <div class="modal-panel max-w-md">
-    <div class="modal-header"><h3 id="modal-lab-def-title" class="modal-title">Lab definition</h3><button data-close-modal class="modal-close">&times;</button></div>
-    <form id="lab-def-form" class="modal-body space-y-4">
-      <input type="hidden" id="lab-def-id" />
-      <input type="hidden" id="lab-def-scope" /> <!-- 'custom' or 'global' -->
-      <div>
-        <label class="form-label">Lab name *</label>
-        <input id="lab-def-name" required class="form-input" />
-      </div>
-      <div>
-        <label class="form-label">Unit</label>
-        <input id="lab-def-unit" class="form-input" placeholder="e.g. mg/dL" />
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="form-label">Lower limit</label>
-          <input id="lab-def-lower" type="number" step="any" class="form-input" />
-        </div>
-        <div>
-          <label class="form-label">Upper limit</label>
-          <input id="lab-def-upper" type="number" step="any" class="form-input" />
-        </div>
-      </div>
-    </form>
-    <div class="modal-footer">
-      <button data-delete-target="lab-def" class="btn-danger hidden mr-auto">Delete</button>
-      <button data-close-modal class="btn-secondary">Cancel</button>
-      <button id="lab-def-save-btn" class="btn-primary">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- Add lab result modal -->
-<div id="modal-lab-result" class="modal-backdrop hidden">
-  <div class="modal-panel max-w-md">
-    <div class="modal-header"><h3 class="modal-title">Add lab result</h3><button data-close-modal class="modal-close">&times;</button></div>
-    <form id="lab-result-form" class="modal-body space-y-4">
-      <div>
-        <label class="form-label">Lab parameter *</label>
-        <select id="lab-result-lab-select" required class="form-input"></select>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="form-label">Value *</label>
-          <input id="lab-result-value" type="number" step="any" required class="form-input" />
-        </div>
-        <div>
-          <label class="form-label">Result date</label>
-          <input id="lab-result-date" type="date" class="form-input" />
-        </div>
-      </div>
-      <p id="lab-result-reference" class="text-xs text-slate-400"></p>
-    </form>
-    <div class="modal-footer">
-      <button data-close-modal class="btn-secondary">Cancel</button>
-      <button id="lab-result-save-btn" class="btn-primary">Save result</button>
-    </div>
-  </div>
-</div>
-
-<!-- AI Extraction modal -->
-<div id="modal-ai-extract" class="modal-backdrop hidden">
-  <div class="modal-panel max-w-2xl">
-    <div class="modal-header"><h3 class="modal-title">AI-powered lab extraction</h3><button data-close-modal class="modal-close">&times;</button></div>
-    <div class="modal-body space-y-4">
-      <p class="text-sm text-slate-500 dark:text-slate-400">Upload a lab report (PDF, PNG/JPG, or Excel). Gemini will extract structured values and map them to your existing lab definitions where possible.</p>
-      <div id="ai-extract-no-key" class="hidden text-sm text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-        No Gemini API key configured. Add one in Settings → AI Lab Extraction first.
-      </div>
-      <input id="ai-extract-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.csv" class="form-input" />
-      <button id="ai-extract-run-btn" class="btn-primary">Extract values</button>
-
-      <div id="ai-extract-results" class="hidden">
-        <h4 class="text-sm font-semibold mt-2 mb-2">Review extracted values</h4>
-        <div class="max-h-72 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-lg">
-          <table class="data-table">
-            <thead><tr><th>Include</th><th>Extracted name</th><th>Mapped to</th><th>Value</th><th>Unit</th></tr></thead>
-            <tbody id="ai-extract-rows"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button data-close-modal class="btn-secondary">Cancel</button>
-      <button id="ai-extract-save-btn" class="btn-primary hidden">Save selected results</button>
-    </div>
-  </div>
-</div>
-
-<!-- New doctor account modal (admin) -->
-<div id="modal-doctor" class="modal-backdrop hidden">
-  <div class="modal-panel max-w-md">
-    <div class="modal-header"><h3 class="modal-title">New doctor account</h3><button data-close-modal class="modal-close">&times;</button></div>
-    <div class="modal-body space-y-4">
-      <div class="text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
-        New auth accounts require the Supabase service role key and cannot be created from this browser client for security reasons. Use the Supabase Dashboard (Authentication → Users → Add user) or the admin script in <code>instructions.md</code>, then that doctor will appear here automatically on first login.
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button data-close-modal class="btn-primary">Got it</button>
-    </div>
-  </div>
-</div>
-
-<!-- Confirm dialog -->
-<div id="modal-confirm" class="modal-backdrop hidden">
-  <div class="modal-panel max-w-sm">
-    <div class="modal-body">
-      <h3 id="confirm-title" class="text-base font-semibold mb-2">Are you sure?</h3>
-      <p id="confirm-message" class="text-sm text-slate-500 dark:text-slate-400"></p>
-    </div>
-    <div class="modal-footer">
-      <button id="confirm-cancel-btn" class="btn-secondary">Cancel</button>
-      <button id="confirm-ok-btn" class="btn-danger">Confirm</button>
-    </div>
-  </div>
-</div>
-
-<script type="module" src="app.js"></script>
+    <!-- Application Controller Module Script -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>
