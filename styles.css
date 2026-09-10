@@ -1,0 +1,269 @@
+/* ============================================================================
+   styles.css — theme variables, high-contrast overrides, component classes
+   ============================================================================ */
+
+:root {
+  --clr-danger: #dc2626;
+  --clr-warning: #d97706;
+  --clr-success: #16a34a;
+  --focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.35);
+}
+
+/* ----------------------------------------------------------------------
+   THEME ENGINE
+   data-theme="light"    -> default Tailwind slate/indigo palette
+   data-theme="dark"     -> Tailwind .dark class also applied by app.js
+   data-theme="contrast" -> forced high-contrast overrides (below)
+---------------------------------------------------------------------- */
+html[data-theme="contrast"] body {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="contrast"] .card,
+html[data-theme="contrast"] #app-shell aside,
+html[data-theme="contrast"] header,
+html[data-theme="contrast"] .modal-panel {
+  background: #000000 !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="contrast"] .form-input,
+html[data-theme="contrast"] select.form-input,
+html[data-theme="contrast"] textarea.form-input {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+html[data-theme="contrast"] .btn-primary {
+  background: #ffff00 !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+  font-weight: 700;
+}
+
+html[data-theme="contrast"] .btn-secondary,
+html[data-theme="contrast"] .btn-ghost-sm {
+  background: #000000 !important;
+  color: #ffff00 !important;
+  border: 2px solid #ffff00 !important;
+}
+
+html[data-theme="contrast"] .data-table th {
+  background: #111111 !important;
+  color: #ffff00 !important;
+}
+
+html[data-theme="contrast"] .data-table td,
+html[data-theme="contrast"] .data-table th {
+  border-color: #ffffff !important;
+}
+
+html[data-theme="contrast"] a,
+html[data-theme="contrast"] .nav-link-active {
+  color: #ffff00 !important;
+}
+
+html[data-theme="contrast"] .badge-out-of-bound {
+  background: #ffff00 !important;
+  color: #000000 !important;
+  font-weight: 800;
+  outline: 2px solid #000000;
+}
+
+/* ----------------------------------------------------------------------
+   COMPONENT CLASSES
+---------------------------------------------------------------------- */
+
+.form-label {
+  @apply block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1;
+}
+
+.form-input {
+  @apply w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+         px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400
+         focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500
+         transition-colors duration-150;
+}
+
+.checkbox-label {
+  @apply inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 select-none;
+}
+.checkbox-label input[type="checkbox"] {
+  @apply h-3.5 w-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500;
+}
+
+.btn-primary {
+  @apply inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white
+         hover:bg-brand-700 active:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-offset-2
+         focus:ring-brand-500 disabled:opacity-50 disabled:pointer-events-none transition-colors duration-150;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700
+         bg-white dark:bg-slate-900 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200
+         hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2
+         focus:ring-brand-500 transition-colors duration-150;
+}
+
+.btn-ghost-sm {
+  @apply inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold text-brand-600
+         dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors duration-150;
+}
+
+.btn-danger {
+  @apply inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white
+         hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500
+         transition-colors duration-150;
+}
+
+.card {
+  @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm;
+}
+
+.section-heading {
+  @apply text-sm font-semibold text-slate-800 dark:text-slate-100;
+}
+
+.nav-link {
+  @apply w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600
+         dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-150;
+}
+.nav-link-active {
+  @apply bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300;
+}
+.nav-icon {
+  @apply w-4 h-4 shrink-0;
+}
+
+.theme-btn {
+  @apply flex-1 flex items-center justify-center rounded-md py-1.5 text-slate-500 dark:text-slate-400
+         hover:bg-white dark:hover:bg-slate-700 transition-colors duration-150;
+}
+.theme-btn.theme-btn-active {
+  @apply bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-300 shadow-sm;
+}
+.theme-btn-lg {
+  @apply rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium
+         hover:bg-slate-50 dark:hover:bg-slate-800;
+}
+.theme-btn-lg.theme-btn-active {
+  @apply border-brand-500 bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300;
+}
+
+.tab-btn {
+  @apply px-3 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 border-b-2 border-transparent
+         hover:text-slate-700 dark:hover:text-slate-200 transition-colors duration-150;
+}
+.tab-btn-active {
+  @apply text-brand-600 dark:text-brand-400 border-brand-600 dark:border-brand-400;
+}
+
+.badge {
+  @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold;
+}
+.badge-active { @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300; }
+.badge-archived { @apply bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400; }
+.badge-out-of-bound { @apply bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300; }
+.badge-borderline { @apply bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300; }
+.badge-normal { @apply bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400; }
+
+/* Data tables */
+.data-table {
+  @apply w-full text-sm border-collapse;
+}
+.data-table thead th {
+  @apply text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400
+         bg-slate-50 dark:bg-slate-800/60 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800
+         whitespace-nowrap;
+}
+.data-table tbody td {
+  @apply px-4 py-2.5 border-b border-slate-100 dark:border-slate-800/70 align-middle;
+}
+.data-table tbody tr:hover {
+  @apply bg-slate-50/70 dark:bg-slate-800/40;
+}
+
+/* View section toggling */
+.view-section.hidden { display: none; }
+.tab-panel.hidden { display: none; }
+
+/* ----------------------------------------------------------------------
+   MODALS
+---------------------------------------------------------------------- */
+.modal-backdrop {
+  @apply fixed inset-0 z-[80] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4;
+  animation: fadeIn 0.15s ease-out;
+}
+.modal-backdrop.hidden { display: none; }
+
+.modal-panel {
+  @apply w-full bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800
+         flex flex-col max-h-[90vh];
+  animation: scaleIn 0.15s ease-out;
+}
+
+.modal-header {
+  @apply flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0;
+}
+.modal-title {
+  @apply text-base font-semibold;
+}
+.modal-close {
+  @apply text-2xl leading-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-1;
+}
+.modal-body {
+  @apply px-5 py-4 overflow-y-auto;
+}
+.modal-footer {
+  @apply flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-800 shrink-0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.97) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Toasts */
+.toast {
+  @apply flex items-start gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white;
+  animation: slideIn 0.2s ease-out;
+}
+.toast-success { @apply bg-emerald-600; }
+.toast-error { @apply bg-red-600; }
+.toast-info { @apply bg-slate-800; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Focus visibility (accessibility floor) */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Scrollbar polish (non-essential, degrades gracefully) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.35); border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
